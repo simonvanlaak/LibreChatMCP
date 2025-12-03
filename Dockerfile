@@ -21,8 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PORT=3002
 ENV HOST=0.0.0.0
 
-ENV FASTMCP_EXPERIMENTAL_ENABLE_NEW_OPENAPI_PARSER=true
-
 # Start
 EXPOSE 3002
 CMD ["python", "main.py"]
