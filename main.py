@@ -47,16 +47,20 @@ libre_chat_mcp.tool(modify_file)
 libre_chat_mcp.tool(delete_file)
 libre_chat_mcp.tool(search_files)
 
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0")
     os.environ["PORT"] = str(port)  # Ensure PORT is set for FastMCP
-    
-    # Get the underlying FastAPI app and add middleware
-    from middleware.user_context import UserContextMiddleware
-    app = libre_chat_mcp.get_asgi_app()
-    app.add_middleware(UserContextMiddleware)
-    
+
+    # NOTE:
+    # The current version of FastMCP used here does not expose a `get_asgi_app`
+    # method on the FastMCP instance, which caused the container to crash with:
+    #   AttributeError: 'FastMCP' object has no attribute 'get_asgi_app'
+    #
+    # To keep the service running reliably, we start FastMCP directly without
+    # attempting to access the underlying ASGI app for now.
+    # If a public API to access the ASGI app is added in the future, this is
+    # where custom middleware such as `UserContextMiddleware` should be wired in.
+
     # Run the server
     libre_chat_mcp.run(transport="http", host=host, port=port)
