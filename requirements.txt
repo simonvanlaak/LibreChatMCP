@@ -1,3 +1,6 @@
 fastmcp
 requests
-
+aiofiles
+httpx
+pytest
+pytest-asyncio

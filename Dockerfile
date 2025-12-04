@@ -17,9 +17,13 @@ COPY . /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create storage directory for user files
+RUN mkdir -p /storage
+
 # Set default environment variables for FastMCP compatibility
 ENV PORT=3002
 ENV HOST=0.0.0.0
+ENV STORAGE_ROOT=/storage
 
 # Start
 EXPOSE 3002
