@@ -12,6 +12,7 @@ import aiofiles
 from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime
+from contextvars import ContextVar
 
 # Storage and RAG API configuration
 STORAGE_ROOT = Path(os.environ.get("STORAGE_ROOT", "/storage"))
@@ -19,21 +20,21 @@ RAG_API_URL = os.environ.get("RAG_API_URL", "http://librechat-rag-api:8000")
 CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", "1500"))
 CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP", "100"))
 
-# User context (will be set by main.py from request headers)
-_current_user_id: Optional[str] = None
+# User context using contextvars for thread-safe per-request storage
+_user_id_context: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
 
 
 def set_current_user(user_id: str):
-    """Set the current user context for file operations"""
-    global _current_user_id
-    _current_user_id = user_id
+    """Set the current user context for file operations (thread-safe)"""
+    _user_id_context.set(user_id)
 
 
 def get_current_user() -> str:
     """Get the current user ID or raise error if not authenticated"""
-    if not _current_user_id:
+    user_id = _user_id_context.get()
+    if not user_id:
         raise RuntimeError("User not authenticated. user_id must be set via X-User-ID header")
-    return _current_user_id
+    return user_id
 
 
 def get_user_storage_path(user_id: str) -> Path:

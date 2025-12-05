@@ -2,5 +2,7 @@ fastmcp
 requests
 aiofiles
 httpx
+uvicorn
+starlette
 pytest
 pytest-asyncio

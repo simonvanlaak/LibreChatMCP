@@ -209,6 +209,30 @@ File storage implements strict user isolation:
 - **Metadata Filtering:** All searches automatically filter by `user_id`
 - **Header-Based Auth:** User identity from `X-User-ID` header (set by LibreChat)
 
+### User Context Extraction
+
+The server extracts user context from the `X-User-ID` HTTP header sent by LibreChat. This is implemented using:
+
+1. **ASGI Middleware** (`middleware/user_context.py`): Intercepts HTTP requests and extracts the `X-User-ID` header
+2. **Context Variables** (`contextvars`): Thread-safe storage for per-request user context
+3. **File Storage Integration**: All file operations automatically use the current user context
+
+**Implementation Details:**
+- Uses Python's `contextvars` for thread-safe, per-request user context storage
+- Middleware extracts `X-User-ID` header from incoming requests
+- Template strings like `{{LIBRECHAT_USER_ID}}` are ignored (treated as no user context)
+- This allows initialization to work without user context
+- User context is automatically cleared after each request
+- If user context is missing, file storage operations will raise a `RuntimeError`
+- Initialization and other non-file-storage operations work fine without user context
+
+**Note:** FastMCP doesn't expose its underlying ASGI app publicly, so the middleware is applied through a wrapper that attempts to access FastMCP's internal app. If the app cannot be accessed, the server falls back to running FastMCP directly (without middleware), which means user context extraction may not work. In this case, file storage operations will fail with authentication errors.
+
+**Verification:**
+- Check server logs for "Starting LibreChatMCP server with user context middleware" message
+- If you see "WARNING: User context middleware not available", the fallback mode is active
+- Test file operations from LibreChat UI - they should work if middleware is active
+
 ## Dependencies
 
 - **fastmcp** - MCP server framework
