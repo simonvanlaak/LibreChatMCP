@@ -96,13 +96,22 @@ def get_fastmcp_app():
                                 return app
                     except Exception:
                         pass
+        # Method 4: Specific FastMCP 2.13+ methods
+        for method_name in ['streamable_http_app', 'http_app', 'sse_app']:
+            if hasattr(libre_chat_mcp, method_name):
+                method = getattr(libre_chat_mcp, method_name)
+                if callable(method):
+                    try:
+                        print(f"DEBUG: Calling {method_name}()")
+                        app = method()
+                        if callable(app):
+                            # It returns an ASGI app (Starlette)
+                            return app
+                    except Exception as e:
+                        print(f"Warning: Failed to call {method_name}: {e}")
+
     except Exception as e:
         print(f"Warning: Could not access FastMCP app: {e}")
-    
-    # DEBUG: Print all attributes to help find the right one
-    print("DEBUG: libre_chat_mcp attributes:", dir(libre_chat_mcp))
-    if hasattr(libre_chat_mcp, '__dict__'):
-        print("DEBUG: libre_chat_mcp vars:", vars(libre_chat_mcp).keys())
     
     return None
 
