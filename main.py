@@ -4,8 +4,8 @@ import uvicorn
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.routing import Mount
-from starlette.requests import Request
 import inspect
+import auth
 
 from tools.agent import (
     create_agent,
@@ -58,9 +58,6 @@ libre_chat_mcp.tool(search_files)
 def get_fastmcp_app():
     """
     Get the underlying ASGI app from FastMCP.
-    
-    FastMCP doesn't expose get_asgi_app() publicly, but we can try to access
-    it through internal attributes. FastMCP likely uses Starlette internally.
     """
     # Try multiple ways to access the internal app
     try:
@@ -87,7 +84,6 @@ def get_fastmcp_app():
                                 return attr
         
         # Method 3: Try to call internal method to create app
-        # FastMCP might have a method that creates the app
         for method_name in ['_create_app', '_get_app', 'get_asgi_app', '_build_app']:
             if hasattr(libre_chat_mcp, method_name):
                 method = getattr(libre_chat_mcp, method_name)
@@ -106,47 +102,42 @@ def get_fastmcp_app():
     return None
 
 
-def create_app_with_middleware():
+def create_app():
     """
-    Create an ASGI app with user context middleware.
-    
-    Since FastMCP doesn't expose get_asgi_app(), we'll try to:
-    1. Get the app from FastMCP if possible
-    2. Wrap it with middleware
-    3. If that fails, use FastMCP.run() directly (without middleware)
+    Create the main Starlette app with OAuth routes and FastMCP mounted.
     """
-    # Try to get FastMCP's app
     fastmcp_app = get_fastmcp_app()
     
-    if fastmcp_app:
-        # Wrap with middleware
-        app = Starlette(
-            routes=[Mount("/", fastmcp_app)],
-            middleware=[Middleware(UserContextMiddleware)]
-        )
-        return app
-    else:
-        # Fallback: return None to use FastMCP.run() directly
-        # This means middleware won't work, but at least the server runs
+    if not fastmcp_app:
+        print("CRITICAL ERROR: Could not extract ASGI app from FastMCP.")
+        # Fallback to just running FastMCP raw if this fails, but Auth won't work
         return None
+
+    routes = [
+        Mount("/mcp", app=fastmcp_app), # Mount FastMCP at /mcp
+    ]
+    
+    # Add Auth routes
+    routes.extend(auth.routes)
+
+    app = Starlette(
+        routes=routes,
+        middleware=[Middleware(UserContextMiddleware)]
+    )
+    return app
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0")
-    os.environ["PORT"] = str(port)  # Ensure PORT is set for FastMCP
+    os.environ["PORT"] = str(port)
 
-    # Try to create app with middleware
-    app_with_middleware = create_app_with_middleware()
+    app = create_app()
     
-    if app_with_middleware:
-        # Run with uvicorn and middleware
-        print(f"Starting LibreChatMCP server with user context middleware on {host}:{port}")
-        uvicorn.run(app_with_middleware, host=host, port=port)
+    if app:
+        print(f"Starting LibreChatMCP server (OAuth Enabled) on {host}:{port}")
+        uvicorn.run(app, host=host, port=port)
     else:
-        # Fallback: use FastMCP.run() directly (without middleware)
-        # NOTE: This means user context extraction won't work via middleware
-        # but we can still try to extract it in tools if FastMCP provides access
-        print(f"Starting LibreChatMCP server (fallback mode) on {host}:{port}")
-        print("WARNING: User context middleware not available. User context extraction may not work.")
+        # Fallback to direct FastMCP run (no Auth)
+        print(f"Starting LibreChatMCP server (Fallback Mode - No Auth) on {host}:{port}")
         libre_chat_mcp.run(transport="http", host=host, port=port)
