@@ -316,3 +316,37 @@ async def search_files(query: str, max_results: int = 5) -> str:
         output += f"   {excerpt}...\n\n"
     
     return output
+
+
+async def configure_obsidian_sync(repo_url: str, token: str, branch: str = "main") -> str:
+    """
+    Configure Git Sync for Obsidian Vault.
+    
+    Saves the credentials to a configuration file that the background sync service watches.
+    WARNING: The token is stored in the user's private storage volume.
+    
+    Args:
+        repo_url: HTTP(S) URL of the Git repository
+        token: Personal Access Token (PAT) for authentication
+        branch: Branch to sync (default: "main")
+        
+    Returns:
+        Status message
+    """
+    user_id = get_current_user()
+    user_dir = get_user_storage_path(user_id)
+    config_path = user_dir / "git_config.json"
+    
+    config = {
+        "repo_url": repo_url,
+        "token": token,
+        "branch": branch,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        async with aiofiles.open(config_path, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(config, indent=2))
+        return f"Successfully configured Obsidian Sync for repository: {repo_url}"
+    except Exception as e:
+        raise RuntimeError(f"Failed to save sync configuration: {e}")

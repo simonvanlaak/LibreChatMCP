@@ -26,6 +26,7 @@ from tools.file_storage import (
     modify_file,
     delete_file,
     search_files,
+    configure_obsidian_sync,
 )
 from middleware.user_context import UserContextMiddleware
 
@@ -53,6 +54,7 @@ libre_chat_mcp.tool(read_file)
 libre_chat_mcp.tool(modify_file)
 libre_chat_mcp.tool(delete_file)
 libre_chat_mcp.tool(search_files)
+libre_chat_mcp.tool(configure_obsidian_sync)
 
 
 def get_fastmcp_app():
