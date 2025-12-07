@@ -136,9 +136,11 @@ def create_app():
     # Add Auth routes
     routes.extend(auth.routes)
 
+    # Pass FastMCP lifespan to Starlette
     app = Starlette(
         routes=routes,
-        middleware=[Middleware(UserContextMiddleware)]
+        middleware=[Middleware(UserContextMiddleware)],
+        lifespan=getattr(fastmcp_app, "lifespan", None)
     )
     return app
 
