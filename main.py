@@ -57,90 +57,46 @@ libre_chat_mcp.tool(search_files)
 libre_chat_mcp.tool(configure_obsidian_sync)
 
 
-def get_fastmcp_app():
+def get_fastmcp_app_and_instance():
     """
-    Get the underlying ASGI app from FastMCP.
+    Get the underlying ASGI app from FastMCP and the FastMCP instance.
     """
-    # Try multiple ways to access the internal app
     try:
-        # Method 1: Direct attribute access
+        # Prefer the documented method: http_app()
+        if hasattr(libre_chat_mcp, "http_app"):
+            asgi_app = libre_chat_mcp.http_app()
+            return asgi_app, libre_chat_mcp
+        # Fallback to legacy extraction
         for attr_name in ['_app', 'app', '__app__']:
             if hasattr(libre_chat_mcp, attr_name):
                 attr = getattr(libre_chat_mcp, attr_name)
                 if callable(attr):
-                    # Check if it looks like an ASGI app
                     sig = inspect.signature(attr)
-                    if len(sig.parameters) == 3:  # ASGI: (scope, receive, send)
-                        return attr
-        
-        # Method 2: Access through transport
-        for transport_attr in ['_transport', 'transport', '_http_transport']:
-            if hasattr(libre_chat_mcp, transport_attr):
-                transport = getattr(libre_chat_mcp, transport_attr)
-                for app_attr in ['app', '_app', '_asgi_app']:
-                    if hasattr(transport, app_attr):
-                        attr = getattr(transport, app_attr)
-                        if callable(attr):
-                            sig = inspect.signature(attr)
-                            if len(sig.parameters) == 3:
-                                return attr
-        
-        # Method 3: Try to call internal method to create app
-        for method_name in ['_create_app', '_get_app', 'get_asgi_app', '_build_app']:
-            if hasattr(libre_chat_mcp, method_name):
-                method = getattr(libre_chat_mcp, method_name)
-                if callable(method):
-                    try:
-                        app = method()
-                        if callable(app):
-                            sig = inspect.signature(app)
-                            if len(sig.parameters) == 3:
-                                return app
-                    except Exception:
-                        pass
-        # Method 4: Specific FastMCP 2.13+ methods
-        for method_name in ['http_app', 'sse_app']:
-            if hasattr(libre_chat_mcp, method_name):
-                method = getattr(libre_chat_mcp, method_name)
-                if callable(method):
-                    try:
-                        print(f"DEBUG: Calling {method_name}()")
-                        app = method()
-                        if callable(app):
-                            # It returns an ASGI app (Starlette)
-                            return app
-                    except Exception as e:
-                        print(f"Warning: Failed to call {method_name}: {e}")
-
+                    if len(sig.parameters) == 3:
+                        return attr, libre_chat_mcp
     except Exception as e:
         print(f"Warning: Could not access FastMCP app: {e}")
-    
-    return None
+    return None, None
 
 
 def create_app():
     """
     Create the main Starlette app with OAuth routes and FastMCP mounted.
     """
-    fastmcp_app = get_fastmcp_app()
-    
-    if not fastmcp_app:
+    fastmcp_app, fastmcp_instance = get_fastmcp_app_and_instance()
+    if not fastmcp_app or not fastmcp_instance:
         print("CRITICAL ERROR: Could not extract ASGI app from FastMCP.")
-        # Fallback to just running FastMCP raw if this fails, but Auth won't work
         return None
-
     routes = [
-        Mount("/", app=fastmcp_app), # Mount FastMCP at root - it has its own internal routing
+        Mount("/", app=fastmcp_app),
     ]
-    
     # Add Auth routes
     routes.extend(auth.routes)
-
-    # Pass FastMCP lifespan to Starlette
+    # Use the FastMCP instance's lifespan property as recommended
     app = Starlette(
         routes=routes,
         middleware=[Middleware(UserContextMiddleware)],
-        lifespan=getattr(fastmcp_app, "lifespan", None)
+        lifespan=getattr(fastmcp_instance, "lifespan", None)
     )
     return app
 
