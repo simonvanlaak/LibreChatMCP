@@ -99,7 +99,7 @@ def get_fastmcp_app():
                     except Exception:
                         pass
         # Method 4: Specific FastMCP 2.13+ methods
-        for method_name in ['streamable_http_app', 'http_app', 'sse_app']:
+        for method_name in ['http_app', 'sse_app']:
             if hasattr(libre_chat_mcp, method_name):
                 method = getattr(libre_chat_mcp, method_name)
                 if callable(method):
