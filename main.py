@@ -30,7 +30,7 @@ from tools.file_storage import (
 )
 from middleware.user_context import UserContextMiddleware
 
-libre_chat_mcp = FastMCP("LibreChat MCP Server")
+libre_chat_mcp = FastMCP("LibreChat MCP Server", stateless_http=True)
 
 # Register Agent tools
 libre_chat_mcp.tool(create_agent)
@@ -62,9 +62,10 @@ def get_fastmcp_app_and_instance():
     Get the underlying ASGI app from FastMCP and the FastMCP instance.
     """
     try:
-        # Prefer the documented method: http_app()
+        # Prefer the documented method: http_app(), always pass lifespan
         if hasattr(libre_chat_mcp, "http_app"):
-            asgi_app = libre_chat_mcp.http_app()
+            # Pass lifespan explicitly to ensure proper initialization
+            asgi_app = libre_chat_mcp.http_app(lifespan=libre_chat_mcp.lifespan)
             return asgi_app, libre_chat_mcp
         # Fallback to legacy extraction
         for attr_name in ['_app', 'app', '__app__']:
@@ -96,7 +97,7 @@ def create_app():
     app = Starlette(
         routes=routes,
         middleware=[Middleware(UserContextMiddleware)],
-        lifespan=getattr(fastmcp_instance, "lifespan", None)
+        lifespan=getattr(fastmcp_instance, "lifespan", None)  # Pass FastMCP lifespan explicitly
     )
     return app
 
