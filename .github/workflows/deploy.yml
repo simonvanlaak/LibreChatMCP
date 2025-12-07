@@ -27,6 +27,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Get short SHA
+        id: short_sha
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -36,7 +40,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/simonvanlaak/librechatmcp:latest
-            ghcr.io/simonvanlaak/librechatmcp:${{ github.sha }}
+            ghcr.io/simonvanlaak/librechatmcp:${{ env.SHORT_SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
