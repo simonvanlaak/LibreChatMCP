@@ -130,7 +130,7 @@ def create_app():
         return None
 
     routes = [
-        Mount("/mcp", app=fastmcp_app), # Mount FastMCP at /mcp
+        Mount("/", app=fastmcp_app), # Mount FastMCP at root - it has its own internal routing
     ]
     
     # Add Auth routes
