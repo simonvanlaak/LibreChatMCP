@@ -238,6 +238,52 @@ async def get_obsidian_sync_status() -> str:
         
         has_placeholders = is_placeholder(repo) or is_placeholder(branch) or is_placeholder(config.get('token', ''))
         
+        # Calculate sync percentage
+        vault_path = user_dir / "obsidian_vault"
+        total_files = 0
+        synced_files = 0
+        
+        if vault_path.exists():
+            import os
+            from pathlib import Path
+            
+            # Count total markdown files (excluding hidden directories)
+            for root, dirs, files in os.walk(vault_path):
+                # Skip hidden directories
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                if any(part.startswith('.') for part in Path(root).parts):
+                    continue
+                for file in files:
+                    if file.endswith('.md'):
+                        total_files += 1
+            
+            # Count synced files (files with entries in sync_hashes.json)
+            hash_db_path = user_dir / "sync_hashes.json"
+            if hash_db_path.exists():
+                try:
+                    async with aiofiles.open(hash_db_path, 'r', encoding='utf-8') as f:
+                        hash_content = await f.read()
+                        hashes = json.loads(hash_content)
+                    
+                    # Count how many hash entries correspond to actual .md files in vault
+                    for hash_key in hashes.keys():
+                        hash_path = Path(hash_key)
+                        # Check if this path is within the vault and is a .md file
+                        try:
+                            if hash_path.exists() and hash_path.suffix == '.md':
+                                # Check if it's within the vault directory
+                                try:
+                                    hash_path.relative_to(vault_path)
+                                    synced_files += 1
+                                except ValueError:
+                                    pass  # Path not in vault
+                        except Exception:
+                            pass  # Path might not exist anymore
+                except Exception:
+                    pass  # If hash DB is corrupted, just show 0 synced
+        
+        sync_percentage = (synced_files / total_files * 100) if total_files > 0 else 0
+        
         # Sync status information
         stopped = config.get('stopped', False)
         failure_count = config.get('failure_count', 0)
@@ -273,6 +319,14 @@ async def get_obsidian_sync_status() -> str:
         status.append(f"Configuration: {config_source}")
         status.append(f"Last updated: {updated_at}")
         status.append("")
+        
+        # Add sync progress
+        if total_files > 0:
+            status.append(f"**Sync Progress:** {synced_files}/{total_files} files ({sync_percentage:.1f}%)")
+            if sync_percentage < 100:
+                remaining = total_files - synced_files
+                status.append(f"Remaining: {remaining} file(s) to sync")
+            status.append("")
         
         if stopped:
             status.append("❌ **SYNC STOPPED**")
