@@ -193,14 +193,32 @@ class SetUserIdFromHeaderMiddleware(BaseHTTPMiddleware):
             
             if current_time - last_write >= self._write_cooldown:
                 try:
-                    await auto_configure_obsidian_sync(
-                        user_id=user_id,
-                        repo_url=obsidian_repo_url.strip(),
-                        token=obsidian_token.strip(),
-                        branch=obsidian_branch.strip() if obsidian_branch else "main"
-                    )
-                    # Update last write time only on successful write
-                    self._last_config_write[user_id] = current_time
+                    # Validate values are not placeholders before attempting to configure
+                    repo_url_clean = obsidian_repo_url.strip()
+                    token_clean = obsidian_token.strip()
+                    branch_clean = obsidian_branch.strip() if obsidian_branch else "main"
+                    
+                    # Check for placeholders (LibreChat bug: placeholders not replaced)
+                    if (repo_url_clean.startswith("{{") and repo_url_clean.endswith("}}") or
+                        token_clean.startswith("{{") and token_clean.endswith("}}") or
+                        branch_clean.startswith("{{") and branch_clean.endswith("}}")):
+                        logger.warning(
+                            f"Skipping auto-config for user {user_id}: "
+                            f"LibreChat did not replace placeholder values in customUserVars. "
+                            f"User needs to set actual values in UI settings."
+                        )
+                    else:
+                        await auto_configure_obsidian_sync(
+                            user_id=user_id,
+                            repo_url=repo_url_clean,
+                            token=token_clean,
+                            branch=branch_clean
+                        )
+                        # Update last write time only on successful write
+                        self._last_config_write[user_id] = current_time
+                except ValueError as e:
+                    # ValueError from auto_configure_obsidian_sync indicates placeholder issue
+                    logger.warning(f"Invalid Obsidian sync config for user {user_id}: {e}")
                 except Exception as e:
                     # Log error but don't fail the request
                     logger.warning(f"Failed to auto-configure Obsidian sync for user {user_id}: {e}", exc_info=True)

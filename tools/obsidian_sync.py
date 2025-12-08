@@ -33,6 +33,24 @@ async def auto_configure_obsidian_sync(
     import logging
     logger = logging.getLogger(__name__)
     
+    # Validate that values are not placeholders (LibreChat bug: placeholders not replaced)
+    def is_placeholder(value: str) -> bool:
+        """Check if value is an unreplaced LibreChat placeholder."""
+        return value.startswith("{{") and value.endswith("}}")
+    
+    if is_placeholder(repo_url) or is_placeholder(token) or is_placeholder(branch):
+        logger.warning(
+            f"Rejecting placeholder values for user {user_id}. "
+            f"LibreChat did not replace placeholders in customUserVars. "
+            f"repo_url is placeholder: {is_placeholder(repo_url)}, "
+            f"token is placeholder: {is_placeholder(token)}, "
+            f"branch is placeholder: {is_placeholder(branch)}"
+        )
+        raise ValueError(
+            "Invalid configuration: LibreChat did not replace placeholder values. "
+            "Please ensure customUserVars are properly set in LibreChat UI settings."
+        )
+    
     user_dir = get_user_storage_path(user_id)
     config_path = user_dir / "git_config.json"
     temp_path = user_dir / "git_config.json.tmp"
@@ -214,6 +232,12 @@ async def get_obsidian_sync_status() -> str:
         auto_configured = config.get('auto_configured', False)
         config_source = "auto-configured via customUserVars" if auto_configured else "manually configured"
         
+        # Check for placeholder values (LibreChat bug)
+        def is_placeholder(value: str) -> bool:
+            return value.startswith("{{") and value.endswith("}}")
+        
+        has_placeholders = is_placeholder(repo) or is_placeholder(branch) or is_placeholder(config.get('token', ''))
+        
         # Sync status information
         stopped = config.get('stopped', False)
         failure_count = config.get('failure_count', 0)
@@ -224,6 +248,26 @@ async def get_obsidian_sync_status() -> str:
         
         status = []
         status.append("=== Obsidian Sync Status ===")
+        
+        if has_placeholders:
+            status.append("⚠️ **CONFIGURATION ERROR**")
+            status.append("LibreChat did not replace placeholder values in customUserVars.")
+            status.append("")
+            status.append("**Current (invalid) configuration:**")
+            status.append(f"Repository URL: {repo}")
+            status.append(f"Branch: {branch}")
+            status.append("")
+            status.append("**To fix:**")
+            status.append("1. Go to LibreChat UI Settings → MCP Servers → librechat_mcp")
+            status.append("2. Set customUserVars:")
+            status.append("   - OBSIDIAN_REPO_URL: Your actual Git repository URL")
+            status.append("   - OBSIDIAN_TOKEN: Your actual Personal Access Token")
+            status.append("   - OBSIDIAN_BRANCH: Your branch name (e.g., 'main')")
+            status.append("3. Save and reconnect to MCP server")
+            status.append("")
+            status.append("**Note:** Sync cannot run with placeholder values.")
+            return "\n".join(status)
+        
         status.append(f"Repository: {repo}")
         status.append(f"Branch: {branch}")
         status.append(f"Configuration: {config_source}")
