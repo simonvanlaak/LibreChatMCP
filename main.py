@@ -31,16 +31,12 @@ libre_chat_mcp.tool(get_model_context_protocol_tools)
 libre_chat_mcp.tool(get_model_context_protocol_status)
 libre_chat_mcp.tool(get_model_context_protocol_info)
 libre_chat_mcp.tool(get_models)
-# File storage tools removed - now in separate ObsidianSyncMCP service
-# Obsidian sync tools removed - now in separate ObsidianSyncMCP service
 
 # Create the app
-# No middleware needed - LibreChatMCP doesn't require user context
 app = libre_chat_mcp.http_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3002))
     host = os.environ.get("HOST", "0.0.0.0")
     print(f"Starting LibreChatMCP server on {host}:{port}")
-    # uvicorn.run automatically detects and handles lifespan from the ASGI app
     uvicorn.run(app, host=host, port=port)
