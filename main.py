@@ -27,9 +27,13 @@ from tools.file_storage import (
     modify_file,
     delete_file,
     search_files,
+    set_current_user,
+)
+from tools.obsidian_sync import (
     configure_obsidian_sync,
     auto_configure_obsidian_sync,
-    set_current_user,
+    get_obsidian_sync_status,
+    reset_obsidian_sync_failures,
 )
 from auth import get_user_from_token
 
@@ -55,6 +59,8 @@ libre_chat_mcp.tool(modify_file)
 libre_chat_mcp.tool(delete_file)
 libre_chat_mcp.tool(search_files)
 libre_chat_mcp.tool(configure_obsidian_sync)
+libre_chat_mcp.tool(get_obsidian_sync_status)
+libre_chat_mcp.tool(reset_obsidian_sync_failures)
 
 
 class SetUserIdFromHeaderMiddleware(BaseHTTPMiddleware):
