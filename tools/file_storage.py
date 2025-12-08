@@ -34,6 +34,15 @@ def get_current_user() -> str:
     user_id = _user_id_context.get()
     if not user_id:
         raise RuntimeError("User not authenticated. user_id must be set via X-User-ID header")
+    
+    # Reject placeholder strings (LibreChat bug: placeholders not replaced)
+    if user_id.startswith("{{") and user_id.endswith("}}"):
+        raise RuntimeError(
+            f"Invalid user_id: '{user_id}' appears to be an unreplaced placeholder. "
+            "This indicates LibreChat's processMCPEnv() didn't receive the user object. "
+            "Please check LibreChat configuration or use OAuth authentication."
+        )
+    
     return user_id
 
 
@@ -318,35 +327,142 @@ async def search_files(query: str, max_results: int = 5) -> str:
     return output
 
 
-async def configure_obsidian_sync(repo_url: str, token: str, branch: str = "main") -> str:
+async def auto_configure_obsidian_sync(
+    user_id: str,
+    repo_url: str,
+    token: str,
+    branch: str = "main"
+) -> None:
     """
-    Configure Git Sync for Obsidian Vault.
-    
-    Saves the credentials to a configuration file that the background sync service watches.
-    WARNING: The token is stored in the user's private storage volume.
+    Automatically configure Obsidian sync when credentials are provided via headers.
+    This is called by middleware when customUserVars are set.
     
     Args:
-        repo_url: HTTP(S) URL of the Git repository
-        token: Personal Access Token (PAT) for authentication
-        branch: Branch to sync (default: "main")
-        
-    Returns:
-        Status message
+        user_id: LibreChat user ID
+        repo_url: Git repository URL
+        token: Personal Access Token
+        branch: Git branch name (defaults to "main")
     """
-    user_id = get_current_user()
+    import logging
+    logger = logging.getLogger(__name__)
+    
     user_dir = get_user_storage_path(user_id)
     config_path = user_dir / "git_config.json"
+    temp_path = user_dir / "git_config.json.tmp"
+    
+    # Check if config already exists and is the same
+    if config_path.exists():
+        try:
+            async with aiofiles.open(config_path, 'r', encoding='utf-8') as f:
+                content = await f.read()
+                existing_config = json.loads(content)
+            # Only update if values changed
+            if (existing_config.get("repo_url") == repo_url and
+                existing_config.get("token") == token and
+                existing_config.get("branch") == branch):
+                return  # No changes needed
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.warning(f"Failed to read existing config for user {user_id}: {e}")
+            # Proceed with write if read fails
     
     config = {
         "repo_url": repo_url,
         "token": token,
         "branch": branch,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.utcnow().isoformat(),
+        "auto_configured": True,
+        "version": "1.0"  # For future migrations
     }
     
     try:
-        async with aiofiles.open(config_path, 'w', encoding='utf-8') as f:
+        # Atomic write: write to temp file, then rename
+        async with aiofiles.open(temp_path, 'w', encoding='utf-8') as f:
             await f.write(json.dumps(config, indent=2))
+        temp_path.replace(config_path)  # Atomic rename
+        logger.info(f"Auto-configured Obsidian sync for user {user_id}")
+    except Exception as e:
+        # Clean up temp file on error
+        if temp_path.exists():
+            temp_path.unlink()
+        logger.error(f"Failed to save sync configuration for user {user_id}: {e}")
+        raise RuntimeError(f"Failed to save sync configuration: {e}")
+
+
+async def configure_obsidian_sync(repo_url: str = None, token: str = None, branch: str = "main") -> str:
+    """
+    Configure Git Sync for Obsidian Vault.
+    
+    All parameters are optional. If not provided, the tool will:
+    1. Check if already configured (returns existing config)
+    2. If not configured, prompt user to set via customUserVars in UI settings
+    
+    This tool can be used to:
+    - Check current configuration status
+    - Update existing configuration
+    - Configure manually (if customUserVars not used)
+    
+    Args:
+        repo_url: HTTP(S) URL of the Git repository (optional)
+        token: Personal Access Token (optional)
+        branch: Branch to sync (default: "main", optional)
+        
+    Returns:
+        Status message with current configuration or success message
+    """
+    user_id = get_current_user()
+    user_dir = get_user_storage_path(user_id)
+    config_path = user_dir / "git_config.json"
+    
+    # If no parameters provided, check if already configured
+    if not repo_url or not token:
+        if config_path.exists():
+            try:
+                async with aiofiles.open(config_path, 'r', encoding='utf-8') as f:
+                    content = await f.read()
+                    existing_config = json.loads(content)
+                repo = existing_config.get('repo_url', 'unknown')
+                auto_configured = existing_config.get('auto_configured', False)
+                config_source = "auto-configured via customUserVars" if auto_configured else "manually configured"
+                return (
+                    f"Obsidian sync is already configured for repository: {repo}\n"
+                    f"Configuration was {config_source}.\n"
+                    f"To update, provide new repo_url and/or token parameters, or update customUserVars in UI settings."
+                )
+            except Exception as e:
+                return (
+                    f"No Obsidian sync configuration found.\n"
+                    f"To configure, either:\n"
+                    f"1. Set customUserVars in UI settings (OBSIDIAN_REPO_URL, OBSIDIAN_TOKEN, OBSIDIAN_BRANCH) - recommended\n"
+                    f"2. Provide repo_url and token parameters to this tool\n"
+                    f"Error reading existing config: {e}"
+                )
+        else:
+            return (
+                "No Obsidian sync configuration found.\n"
+                "To configure, either:\n"
+                "1. Set customUserVars in UI settings (OBSIDIAN_REPO_URL, OBSIDIAN_TOKEN, OBSIDIAN_BRANCH) - recommended\n"
+                "2. Provide repo_url and token parameters to this tool"
+            )
+    
+    # Parameters provided - update/create configuration
+    config = {
+        "repo_url": repo_url,
+        "token": token,
+        "branch": branch,
+        "updated_at": datetime.utcnow().isoformat(),
+        "auto_configured": False,
+        "version": "1.0"
+    }
+    
+    temp_path = user_dir / "git_config.json.tmp"
+    try:
+        # Use atomic write pattern for consistency
+        async with aiofiles.open(temp_path, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(config, indent=2))
+        temp_path.replace(config_path)  # Atomic rename
         return f"Successfully configured Obsidian Sync for repository: {repo_url}"
     except Exception as e:
+        # Clean up temp file on error
+        if temp_path.exists():
+            temp_path.unlink()
         raise RuntimeError(f"Failed to save sync configuration: {e}")

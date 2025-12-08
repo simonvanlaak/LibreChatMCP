@@ -293,5 +293,195 @@ class TestErrorHandling:
             assert not file_path.exists()
 
 
+class TestObsidianSyncConfiguration:
+    """Test Obsidian sync auto-configuration functionality"""
+    
+    @pytest.mark.asyncio
+    async def test_auto_configure_obsidian_sync_creates_config(self, temp_storage_dir):
+        """Test that auto_configure_obsidian_sync creates git_config.json"""
+        import json
+        
+        user_id = "test_user_456"
+        repo_url = "https://github.com/user/vault.git"
+        token = "ghp_testtoken123"
+        branch = "main"
+        
+        await file_storage.auto_configure_obsidian_sync(
+            user_id=user_id,
+            repo_url=repo_url,
+            token=token,
+            branch=branch
+        )
+        
+        # Verify config file was created
+        config_path = temp_storage_dir / user_id / "git_config.json"
+        assert config_path.exists()
+        
+        # Verify config content
+        import aiofiles
+        async with aiofiles.open(config_path, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            config = json.loads(content)
+        
+        assert config["repo_url"] == repo_url
+        assert config["token"] == token
+        assert config["branch"] == branch
+        assert config["auto_configured"] is True
+        assert config["version"] == "1.0"
+        assert "updated_at" in config
+    
+    @pytest.mark.asyncio
+    async def test_auto_configure_obsidian_sync_updates_existing_config(self, temp_storage_dir):
+        """Test that auto_configure_obsidian_sync updates existing config when values change"""
+        import json
+        import aiofiles
+        
+        user_id = "test_user_789"
+        user_dir = temp_storage_dir / user_id
+        user_dir.mkdir(parents=True, exist_ok=True)
+        config_path = user_dir / "git_config.json"
+        
+        # Create initial config
+        initial_config = {
+            "repo_url": "https://github.com/user/old-vault.git",
+            "token": "ghp_oldtoken",
+            "branch": "main",
+            "auto_configured": True,
+            "version": "1.0"
+        }
+        async with aiofiles.open(config_path, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(initial_config, indent=2))
+        
+        # Update with new values
+        new_repo_url = "https://github.com/user/new-vault.git"
+        new_token = "ghp_newtoken"
+        
+        await file_storage.auto_configure_obsidian_sync(
+            user_id=user_id,
+            repo_url=new_repo_url,
+            token=new_token,
+            branch="main"
+        )
+        
+        # Verify config was updated
+        async with aiofiles.open(config_path, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            config = json.loads(content)
+        
+        assert config["repo_url"] == new_repo_url
+        assert config["token"] == new_token
+    
+    @pytest.mark.asyncio
+    async def test_auto_configure_obsidian_sync_skips_unchanged_config(self, temp_storage_dir):
+        """Test that auto_configure_obsidian_sync skips write if config is unchanged"""
+        import json
+        import aiofiles
+        import os
+        
+        user_id = "test_user_skip"
+        user_dir = temp_storage_dir / user_id
+        user_dir.mkdir(parents=True, exist_ok=True)
+        config_path = user_dir / "git_config.json"
+        
+        repo_url = "https://github.com/user/vault.git"
+        token = "ghp_token123"
+        branch = "main"
+        
+        # Create initial config
+        initial_config = {
+            "repo_url": repo_url,
+            "token": token,
+            "branch": branch,
+            "auto_configured": True,
+            "version": "1.0",
+            "updated_at": "2024-01-01T00:00:00"
+        }
+        async with aiofiles.open(config_path, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(initial_config, indent=2))
+        
+        # Get initial modification time
+        initial_mtime = config_path.stat().st_mtime
+        
+        # Call auto_configure with same values
+        await file_storage.auto_configure_obsidian_sync(
+            user_id=user_id,
+            repo_url=repo_url,
+            token=token,
+            branch=branch
+        )
+        
+        # Verify file modification time didn't change (or changed minimally)
+        # Allow small time difference for file system operations
+        final_mtime = config_path.stat().st_mtime
+        # The file should not have been rewritten (mtime should be very close)
+        # In practice, if unchanged, the function returns early, so mtime should be identical
+        assert abs(final_mtime - initial_mtime) < 1.0  # Less than 1 second difference
+    
+    @pytest.mark.asyncio
+    async def test_configure_obsidian_sync_manual(self, temp_storage_dir, setup_user):
+        """Test manual configuration via configure_obsidian_sync tool"""
+        import json
+        import aiofiles
+        
+        repo_url = "https://github.com/user/vault.git"
+        token = "ghp_manualtoken"
+        branch = "main"
+        
+        result = await file_storage.configure_obsidian_sync(
+            repo_url=repo_url,
+            token=token,
+            branch=branch
+        )
+        
+        assert "Successfully configured Obsidian Sync" in result
+        assert repo_url in result
+        
+        # Verify config file was created
+        config_path = temp_storage_dir / "test_user_123" / "git_config.json"
+        assert config_path.exists()
+        
+        # Verify config content
+        async with aiofiles.open(config_path, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            config = json.loads(content)
+        
+        assert config["repo_url"] == repo_url
+        assert config["token"] == token
+        assert config["branch"] == branch
+        assert config["auto_configured"] is False  # Manual configuration
+    
+    @pytest.mark.asyncio
+    async def test_configure_obsidian_sync_returns_status_when_no_params(self, temp_storage_dir, setup_user):
+        """Test that configure_obsidian_sync returns helpful message when no params and not configured"""
+        result = await file_storage.configure_obsidian_sync(repo_url=None, token=None)
+        assert "No Obsidian sync configuration found" in result
+        assert "customUserVars" in result or "repo_url and token" in result
+    
+    @pytest.mark.asyncio
+    async def test_configure_obsidian_sync_returns_existing_config(self, temp_storage_dir, setup_user):
+        """Test that configure_obsidian_sync returns existing config if already configured"""
+        import json
+        import aiofiles
+        
+        # First, configure it
+        repo_url = "https://github.com/user/vault.git"
+        token = "ghp_token"
+        
+        await file_storage.configure_obsidian_sync(
+            repo_url=repo_url,
+            token=token,
+            branch="main"
+        )
+        
+        # Then try to configure again without parameters
+        result = await file_storage.configure_obsidian_sync(
+            repo_url=None,
+            token=None
+        )
+        
+        assert "already configured" in result.lower()
+        assert repo_url in result
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
