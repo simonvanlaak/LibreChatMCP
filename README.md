@@ -267,6 +267,27 @@ The server extracts user context from the `X-User-ID` HTTP header sent by LibreC
 "List all tools available through MCP"
 ```
 
+## GitHub Actions Secrets
+
+This repository uses GitHub Actions for automated CI/CD. The following secrets must be configured in the repository settings (Settings → Secrets and variables → Actions):
+
+### Required Secrets
+
+- **`PARENT_REPO_TOKEN`** - Personal Access Token (PAT) with `repo` scope to trigger the parent repository (TheMaryAnne) workflow after successful image push. This token must have permissions to trigger `repository_dispatch` events in the parent repository.
+
+### How to Generate the Token
+
+1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Generate a new token with the `repo` scope
+3. Add it as a secret named `PARENT_REPO_TOKEN` in this repository's secrets
+
+### Automated Deployment Flow
+
+When code is pushed to the `main` branch:
+1. Tests run (if any)
+2. Docker image is built and pushed to GitHub Container Registry
+3. Parent repository (TheMaryAnne) is automatically triggered to update the submodule reference and deploy
+
 ## Contributing
 
 This is part of the TheMaryAnne project's LibreChat deployment on Hetzner Cloud.
