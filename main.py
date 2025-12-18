@@ -14,9 +14,6 @@ from tools.agent import (
 from tools.model_context_protocol import (
     get_model_context_protocol_tools, get_model_context_protocol_info, get_model_context_protocol_status)
 from tools.models import get_models
-# File storage tools removed - now in separate ObsidianSyncMCP service
-# Obsidian sync tools removed - now in separate ObsidianSyncMCP service
-
 libre_chat_mcp = FastMCP("LibreChat MCP Server", stateless_http=True)
 
 # Register all tools
