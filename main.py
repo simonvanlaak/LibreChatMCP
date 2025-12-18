@@ -14,6 +14,9 @@ from tools.agent import (
 from tools.model_context_protocol import (
     get_model_context_protocol_tools, get_model_context_protocol_info, get_model_context_protocol_status)
 from tools.models import get_models
+from shared.auth import routes as auth_routes
+from shared.middleware import SetUserIdFromHeaderMiddleware
+
 libre_chat_mcp = FastMCP("LibreChat MCP Server", stateless_http=True)
 
 # Register all tools
@@ -31,6 +34,13 @@ libre_chat_mcp.tool(get_models)
 
 # Create the app
 app = libre_chat_mcp.http_app()
+
+# Register OAuth routes
+for route in auth_routes:
+    app.routes.append(route)
+
+# Add middleware
+app.add_middleware(SetUserIdFromHeaderMiddleware)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3002))
