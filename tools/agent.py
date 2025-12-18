@@ -59,7 +59,10 @@ def create_agent(
     support_contact: dict = None,
     category: str = None,
     provider: str = None,
-    model: str = None
+    model: str = None,
+    projectIds: list = None,
+    removeProjectIds: list = None,
+    isCollaborative: bool = None
 ) -> dict:
     """
     Create a new agent in LibreChat.
@@ -83,6 +86,9 @@ def create_agent(
         category (str, optional): Agent category.
         provider (str, required): Provider name (e.g., 'openai').
         model (str or None, required): Model name or None.
+        projectIds (list of str, optional): Project IDs to add.
+        removeProjectIds (list of str, optional): Project IDs to remove.
+        isCollaborative (bool, optional): Collaborative flag.
 
     Returns:
         dict: The created agent object as returned by the LibreChat API.
@@ -118,7 +124,10 @@ def create_agent(
         ("support_contact", support_contact),
         ("category", category),
         ("provider", provider),
-        ("model", model)
+        ("model", model),
+        ("projectIds", projectIds),
+        ("removeProjectIds", removeProjectIds),
+        ("isCollaborative", isCollaborative)
     ]:
         if v is not None:
             agent_fields[k] = v
