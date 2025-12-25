@@ -54,8 +54,91 @@ pytest tests/test_file_storage.py -v
 # Run integration tests (requires RAG API)
 RAG_API_URL=http://localhost:8000 pytest tests/test_rag_integration.py -v -m integration
 
+# Run OAuth integration tests (requires LibreChat credentials)
+export TEST_LIBRECHAT_EMAIL='your-email@example.com'
+export TEST_LIBRECHAT_PASSWORD='your-password'
+pytest tests/test_oauth_integration.py::test_oauth_flow_docker -v
+
+# Run OAuth tests in production
+export PRODUCTION_HOST='https://chat.example.com'
+pytest tests/test_oauth_integration.py::test_oauth_flow_production -v
+
+# Run critical OAuth configuration test (prevents error redirects)
+pytest tests/test_oauth_integration.py::test_oauth_configuration_prevents_error_redirect -v
+
+# Or use the test runner script
+./tests/run_oauth_tests.sh docker      # Test Docker environment
+./tests/run_oauth_tests.sh production  # Test production environment
+./tests/run_oauth_tests.sh health     # Quick health check (no credentials)
+./tests/run_oauth_tests.sh config     # Validate OAuth config (CRITICAL - prevents error redirects)
+./tests/run_oauth_tests.sh all        # Run all tests
+
 # Run all tests
 pytest tests/ -v
+```
+
+### Git Hooks
+
+LibreChatMCP includes git hooks for automated quality checks. Hooks run automatically when you commit or push code.
+
+#### Installation
+
+Hooks are installed automatically when you run the root repository's installation script:
+
+```bash
+# From root repository
+./scripts/install-git-hooks.sh
+```
+
+Or manually install hooks in this submodule:
+
+```bash
+cd LibreChatMCP
+chmod +x .git/hooks/pre-commit .git/hooks/pre-push
+```
+
+#### Pre-commit Hook
+
+The pre-commit hook runs fast tests before each commit:
+
+- **Linting**: `ruff check` or `flake8`
+- **Formatting**: `ruff format --check` or `black --check`
+- **Type Checking**: `mypy` (if configured, non-blocking)
+- **Unit Tests**: `pytest tests/ -v -m "not integration" --tb=short`
+- **OAuth Config Validation**: `pytest tests/test_oauth_integration.py::test_oauth_configuration_prevents_error_redirect -v`
+
+Run manually:
+```bash
+./scripts/run-fast-tests.sh
+```
+
+#### Pre-push Hook
+
+The pre-push hook runs integration tests before pushing:
+
+- **Integration Tests**: `pytest tests/ -v -m integration`
+- **OAuth Integration Tests**: `pytest tests/test_oauth_integration.py -v` (requires credentials)
+- **Docker Build Test**: Validates Dockerfile builds successfully
+- **Dockerfile Lint**: `hadolint Dockerfile` (if available)
+
+Run manually:
+```bash
+./scripts/run-integration-tests.sh
+```
+
+#### Bypass Options
+
+To bypass hooks when needed:
+
+```bash
+# Skip pre-commit hook
+git commit --no-verify
+
+# Skip pre-push hook
+git push --no-verify
+
+# Skip hooks in CI/CD
+export SKIP_HOOKS=true
 ```
 
 ### Deployment to Kubernetes

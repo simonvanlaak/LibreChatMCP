@@ -38,5 +38,3 @@ def test_create_agent_with_new_parameters(mock_headers, mock_request, mock_resp)
     assert sent_json["projectIds"] == ["project_1"]
     assert sent_json["removeProjectIds"] == ["project_2"]
     assert sent_json["isCollaborative"] is True
-
-
