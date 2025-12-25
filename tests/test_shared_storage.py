@@ -39,7 +39,19 @@ def test_delete_token(temp_db):
     store = TokenStore(db_path=temp_db)
     user_id = "user_123"
     store.save_token(user_id, "jwt", {})
+    store.save_mcp_token("token_abc", user_id)
     
     store.delete_token(user_id)
     assert store.get_token(user_id) is None
+    assert store.get_user_by_mcp_token("token_abc") is None
+
+def test_save_and_get_mcp_token(temp_db):
+    store = TokenStore(db_path=temp_db)
+    user_id = "user_123"
+    token = "mcp_access_token_456"
+    
+    store.save_mcp_token(token, user_id)
+    retrieved_user_id = store.get_user_by_mcp_token(token)
+    
+    assert retrieved_user_id == user_id
 

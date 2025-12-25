@@ -6,3 +6,4 @@ uvicorn
 starlette
 pytest
 pytest-asyncio
+ruff>=0.6.4

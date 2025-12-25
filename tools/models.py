@@ -7,6 +7,8 @@ def get_models() -> dict:
     """
     Get a list of all models available on the server.
 
+    This function takes no parameters. Simply call it without any arguments.
+
     Returns:
         dict: List of models and their metadata.
 

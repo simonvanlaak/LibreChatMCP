@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from shared.middleware import SetUserIdFromHeaderMiddleware
-from shared.auth import TOKENS
+from shared.storage import token_store
 
 def test_middleware_401_on_mcp_endpoint():
     app = Starlette()
@@ -38,7 +38,7 @@ def test_middleware_success_with_token():
     # Mock a token
     token = "valid_token"
     user_id = "user_123"
-    TOKENS[token] = user_id
+    token_store.save_mcp_token(token, user_id)
     
     client = TestClient(app)
     response = client.get("/mcp", headers={"Authorization": f"Bearer {token}"})

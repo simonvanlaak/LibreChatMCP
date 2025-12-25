@@ -9,15 +9,19 @@ def list_agents(page: int = 1, limit: int = 10) -> dict:
     """
     List agents with pagination.
 
+    All parameters are optional. If not provided, defaults will be used.
+
     Args:
-        page (int): The page number to retrieve. Defaults to 1.
-        limit (int): The number of agents per page. Defaults to 10.
+        page (int, optional): The page number to retrieve. Defaults to 1.
+        limit (int, optional): The number of agents per page. Defaults to 10.
 
     Returns:
         dict: JSON object with agent data or error message.
 
-    Example:
-        list_agents(page=1, limit=10)
+    Examples:
+        list_agents()  # Uses defaults: page=1, limit=10
+        list_agents(page=2)  # Page 2 with default limit
+        list_agents(page=1, limit=20)  # Custom page and limit
     """
     headers = default_headers()
     url = f"{API_BASE_URL}/agents"
@@ -67,6 +71,9 @@ def create_agent(
     """
     Create a new agent in LibreChat.
 
+    Most parameters are optional. Only provide the parameters you need.
+    The function will only include non-None parameters in the API request.
+
     Args:
         name (str, optional): Agent name.
         description (str, optional): Agent description.
@@ -84,8 +91,8 @@ def create_agent(
         tool_resources (dict, optional): Tool resources (see agentToolResourcesSchema).
         support_contact (dict, optional): Support contact info (name, email).
         category (str, optional): Agent category.
-        provider (str, required): Provider name (e.g., 'openai').
-        model (str or None, required): Model name or None.
+        provider (str, optional): Provider name (e.g., 'openai'). Typically required for most agents.
+        model (str, optional): Model name. Typically required for most agents.
         projectIds (list of str, optional): Project IDs to add.
         removeProjectIds (list of str, optional): Project IDs to remove.
         isCollaborative (bool, optional): Collaborative flag.
@@ -96,7 +103,11 @@ def create_agent(
     Raises:
         requests.HTTPError: If the API call fails.
 
-    Example:
+    Examples:
+        # Minimal example with just name and model
+        create_agent(name="MyAgent", provider="openai", model="gpt-4")
+        
+        # Full example with multiple parameters
         create_agent(
             name="MyAgent",
             provider="openai",
@@ -181,6 +192,7 @@ def update_agent(
     Update an existing agent in LibreChat.
 
     Only 'agent_id' is required; all other fields are optional and will be updated if provided.
+    Only non-None parameters will be included in the update request.
     Use the list_agents tool to find available agent IDs.
     To learn about the current config of an agent use the get_agent tool.
 
@@ -281,6 +293,8 @@ def list_agent_categories() -> list:
     """
     List all agent categories.
 
+    This function takes no parameters. Simply call it without any arguments.
+
     Returns:
         list: List of agent categories with counts and descriptions.
 
@@ -294,6 +308,8 @@ def list_agent_categories() -> list:
 def list_agent_tools() -> list:
     """
     List all available tools for agents.
+
+    This function takes no parameters. Simply call it without any arguments.
 
     Returns:
         list: List of available agent tools.

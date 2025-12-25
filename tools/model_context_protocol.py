@@ -8,6 +8,8 @@ def get_model_context_protocol_tools() -> dict:
     """
     Get a list of all Model Context Protocol tools available on the server.
 
+    This function takes no parameters. Simply call it without any arguments.
+
     Returns:
         dict: List of Model Context Protocol tools and their metadata.
 
@@ -25,6 +27,8 @@ def get_model_context_protocol_status() -> dict:
     """
     Get the status of the Model Context Protocol server.
 
+    This function takes no parameters. Simply call it without any arguments.
+
     Returns:
         dict: Model Context Protocol server status information.
 
@@ -41,6 +45,8 @@ def get_model_context_protocol_status() -> dict:
 def get_model_context_protocol_info() -> dict:
     """
     Get general information about the Model Context Protocol server.
+
+    This function takes no parameters. Simply call it without any arguments.
 
     Returns:
         dict: Model Context Protocol server info and metadata.

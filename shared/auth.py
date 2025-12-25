@@ -15,11 +15,8 @@ logger = logging.getLogger(__name__)
 API_BASE_URL = os.environ.get("LIBRECHAT_API_BASE_URL", "http://api:3080/api")
 
 # OAuth client configuration
-# In-memory storage for auth codes (transient)
+# In-memory storage for auth codes (transient - okay to be in-memory as they are short-lived)
 AUTH_CODES = {}  # code -> user_id
-# In-memory storage for MCP access tokens
-# Note: These are the tokens used by LibreChat to call this MCP server
-TOKENS = {}      # token -> user_id
 
 def generate_token():
     return secrets.token_urlsafe(32)
@@ -160,9 +157,9 @@ async def token(request: Request):
             
         user_id = AUTH_CODES.pop(code)
         access_token = generate_token()
-        TOKENS[access_token] = user_id
+        token_store.save_mcp_token(access_token, user_id)
         
-        logger.info(f"MCP access token generated for user_id: {user_id}")
+        logger.info(f"MCP access token generated and saved for user_id: {user_id}")
         
         return JSONResponse({
             "access_token": access_token,
@@ -174,8 +171,8 @@ async def token(request: Request):
     return JSONResponse({"error": "method_not_allowed"}, status_code=405)
 
 def get_user_from_token(token: str):
-    """Get the user_id associated with an MCP access token"""
-    return TOKENS.get(token)
+    """Get the user_id associated with an MCP access token (persisted)"""
+    return token_store.get_user_by_mcp_token(token)
 
 routes = [
     Route("/authorize", authorize, methods=["GET", "POST"]),

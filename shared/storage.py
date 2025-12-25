@@ -52,10 +52,17 @@ class TokenStore:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS mcp_access_tokens (
+                    token TEXT PRIMARY KEY,
+                    user_id TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
             conn.commit()
 
     def save_token(self, user_id: str, jwt_token: str, cookies: Dict[str, str]):
-        """Save or update a user's token and cookies"""
+        """Save or update a user's token and cookies (LibreChat JWT)"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO user_tokens (user_id, jwt_token, cookies, updated_at)
@@ -64,7 +71,7 @@ class TokenStore:
             conn.commit()
 
     def get_token(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve a user's token and cookies"""
+        """Retrieve a user's token and cookies (LibreChat JWT)"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT jwt_token, cookies FROM user_tokens WHERE user_id = ?", 
@@ -78,10 +85,32 @@ class TokenStore:
                 }
         return None
 
+    def save_mcp_token(self, token: str, user_id: str):
+        """Save or update an MCP access token"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                INSERT OR REPLACE INTO mcp_access_tokens (token, user_id, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            """, (token, user_id))
+            conn.commit()
+
+    def get_user_by_mcp_token(self, token: str) -> Optional[str]:
+        """Retrieve a user_id associated with an MCP access token"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT user_id FROM mcp_access_tokens WHERE token = ?", 
+                (token,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0]
+        return None
+
     def delete_token(self, user_id: str):
         """Delete a user's token"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM user_tokens WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM mcp_access_tokens WHERE user_id = ?", (user_id,))
             conn.commit()
 
 # Singleton instance
