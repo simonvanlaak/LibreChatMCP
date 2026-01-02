@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run fast tests for LibreChatMCP (used by pre-commit hook)
+# Run fast tests for LibreChat-MCP (used by pre-commit hook)
 # Includes: lint, format, unit tests, OAuth config validation
 
 set -e
@@ -24,7 +24,7 @@ source "$PROJECT_ROOT/scripts/git-hooks-utils.sh" 2>/dev/null || {
     run_test_suite() { echo "Running: $1"; shift; if "$@"; then print_success "$1"; else print_error "$1"; return 1; fi; }
 }
 
-print_section "LibreChatMCP: Fast Tests (Pre-commit)"
+print_section "LibreChat-MCP: Fast Tests (Pre-commit)"
 
 FAILED=0
 

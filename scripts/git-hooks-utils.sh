@@ -1,5 +1,5 @@
 #!/bin/bash
-# LibreChatMCP-specific git hooks utilities
+# LibreChat-MCP-specific git hooks utilities
 
 set -e
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run integration tests for LibreChatMCP (used by pre-push hook)
+# Run integration tests for LibreChat-MCP (used by pre-push hook)
 # Includes: integration tests, OAuth integration tests, Docker build
 
 set -e
@@ -23,7 +23,7 @@ source "$PROJECT_ROOT/scripts/git-hooks-utils.sh" 2>/dev/null || {
     run_test_suite() { echo "Running: $1"; shift; if "$@"; then print_success "$1"; else print_error "$1"; return 1; fi; }
 }
 
-print_section "LibreChatMCP: Integration Tests (Pre-push)"
+print_section "LibreChat-MCP: Integration Tests (Pre-push)"
 
 FAILED=0
 
@@ -57,10 +57,10 @@ fi
 if check_command docker; then
     print_section "Docker Build Test"
     if [ -f "Dockerfile" ]; then
-        if run_test_suite "Docker build" docker build -t test-librechatmcp:test .; then
+        if run_test_suite "Docker build" docker build -t test-librechat-mcp:test .; then
             print_success "Docker image built successfully"
             # Clean up test image
-            docker rmi test-librechatmcp:test >/dev/null 2>&1 || true
+            docker rmi test-librechat-mcp:test >/dev/null 2>&1 || true
         else
             print_error "Docker build failed"
             FAILED=1
