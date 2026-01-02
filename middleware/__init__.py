@@ -1,3 +1,3 @@
 """
-Middleware package for LibreChatMCP
+Middleware package for LibreChat-MCP
 """

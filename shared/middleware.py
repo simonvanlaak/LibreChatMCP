@@ -1,5 +1,5 @@
 """
-Middleware for LibreChatMCP.
+Middleware for LibreChat-MCP.
 Handles OAuth token extraction and user identification.
 """
 import logging

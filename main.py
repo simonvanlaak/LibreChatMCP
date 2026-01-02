@@ -45,5 +45,5 @@ app.add_middleware(SetUserIdFromHeaderMiddleware)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3002))
     host = os.environ.get("HOST", "0.0.0.0")
-    print(f"Starting LibreChatMCP server on {host}:{port}")
+    print(f"Starting LibreChat-MCP server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
