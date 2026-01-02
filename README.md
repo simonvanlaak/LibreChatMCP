@@ -1,4 +1,4 @@
-# LibreChatMCP - LibreChat Management Server
+# LibreChat-MCP - LibreChat Management Server
 
 A comprehensive Model Context Protocol (MCP) server for managing LibreChat instances, providing tools for agent management, MCP server administration, model queries, and user-specific file storage.
 
@@ -79,7 +79,7 @@ pytest tests/ -v
 
 ### Git Hooks
 
-LibreChatMCP includes git hooks for automated quality checks. Hooks run automatically when you commit or push code.
+LibreChat-MCP includes git hooks for automated quality checks. Hooks run automatically when you commit or push code.
 
 #### Installation
 
@@ -93,7 +93,7 @@ Hooks are installed automatically when you run the root repository's installatio
 Or manually install hooks in this submodule:
 
 ```bash
-cd LibreChatMCP
+cd LibreChat-MCP
 chmod +x .git/hooks/pre-commit .git/hooks/pre-push
 ```
 
@@ -145,14 +145,14 @@ export SKIP_HOOKS=true
 
 ```bash
 # Build and push Docker image
-docker build -t ghcr.io/simonvanlaak/librechatmcp:latest .
-docker push ghcr.io/simonvanlaak/librechatmcp:latest
+docker build -t ghcr.io/simonvanlaak/librechat-mcp:latest .
+docker push ghcr.io/simonvanlaak/librechat-mcp:latest
 
 # Deploy with Helm
 cd ../../helm/librechat
 helm upgrade --install librechat . \
-  --set librechatmcp.storage.enabled=true \
-  --set librechatmcp.ragApiUrl=http://librechat-rag-api:8000
+  --set librechat-mcp.storage.enabled=true \
+  --set librechat-mcp.ragApiUrl=http://librechat-rag-api:8000
 ```
 
 ## Available Tools
@@ -199,7 +199,7 @@ helm upgrade --install librechat . \
 
 ```mermaid
 graph TB
-    A[LibreChat User] -->|HTTP + X-User-ID| B[LibreChatMCP Server]
+    A[LibreChat User] -->|HTTP + X-User-ID| B[LibreChat-MCP Server]
     B -->|FastMCP| C[Tool Registry]
     
     C --> D[Agent Tools]
@@ -262,7 +262,7 @@ mcpServers:
 ## Project Structure
 
 ```
-LibreChatMCP/
+LibreChat-MCP/
 ├── main.py                       # FastMCP server entry point
 ├── requirements.txt              # Python dependencies
 ├── Dockerfile                    # Container image definition
@@ -312,7 +312,7 @@ The server extracts user context from the `X-User-ID` HTTP header sent by LibreC
 **Note:** FastMCP doesn't expose its underlying ASGI app publicly, so the middleware is applied through a wrapper that attempts to access FastMCP's internal app. If the app cannot be accessed, the server falls back to running FastMCP directly (without middleware), which means user context extraction may not work. In this case, file storage operations will fail with authentication errors.
 
 **Verification:**
-- Check server logs for "Starting LibreChatMCP server with user context middleware" message
+- Check server logs for "Starting LibreChat-MCP server with user context middleware" message
 - If you see "WARNING: User context middleware not available", the fallback mode is active
 - Test file operations from LibreChat UI - they should work if middleware is active
 
