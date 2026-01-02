@@ -1,3 +1,3 @@
 """
-Tests package for LibreChatMCP
+Tests package for LibreChat-MCP
 """

@@ -61,9 +61,9 @@ class OAuthFlowTester:
             response = self.session.get(
                 self.authorize_url,
                 params={
-                    "redirect_uri": "http://localhost:3080/api/mcp/librechatmcp/oauth/callback",
-                    "state": "test-user-123:librechatmcp",
-                    "client_id": "librechatmcp"
+                    "redirect_uri": "http://localhost:3080/api/mcp/librechat-mcp/oauth/callback",
+                    "state": "test-user-123:librechat-mcp",
+                    "client_id": "librechat-mcp"
                 },
                 timeout=10
             )
@@ -76,8 +76,8 @@ class OAuthFlowTester:
     
     def test_login_form_submission(self, email: str, password: str) -> Optional[str]:
         """Test login form submission and get authorization code"""
-        state = f"test-user-123:librechatmcp"
-        redirect_uri = "http://localhost:3080/api/mcp/librechatmcp/oauth/callback"
+        state = f"test-user-123:librechat-mcp"
+        redirect_uri = "http://localhost:3080/api/mcp/librechat-mcp/oauth/callback"
         
         # First, get the authorization page
         auth_response = self.session.get(
@@ -85,7 +85,7 @@ class OAuthFlowTester:
             params={
                 "redirect_uri": redirect_uri,
                 "state": state,
-                "client_id": "librechatmcp"
+                "client_id": "librechat-mcp"
             },
             timeout=10
         )
@@ -97,7 +97,7 @@ class OAuthFlowTester:
             params={
                 "redirect_uri": redirect_uri,
                 "state": state,
-                "client_id": "librechatmcp"
+                "client_id": "librechat-mcp"
             },
             data={
                 "action": "login",
@@ -222,7 +222,7 @@ def test_oauth_flow_docker():
     5. Token persistence
     
     Prerequisites:
-    - LibreChatMCP service running on localhost:3002
+    - LibreChat-MCP service running on localhost:3002
     - LibreChat API running on localhost:3080
     - Set TEST_LIBRECHAT_EMAIL and TEST_LIBRECHAT_PASSWORD environment variables
     """
@@ -280,7 +280,7 @@ def test_oauth_flow_production():
     - Set PRODUCTION_HOST environment variable (e.g., "https://chat.example.com")
     - Set TEST_LIBRECHAT_EMAIL and TEST_LIBRECHAT_PASSWORD environment variables
     """
-    production_base_url = f"{PRODUCTION_HOST}/mcp/librechatmcp/oauth"
+    production_base_url = f"{PRODUCTION_HOST}/mcp/librechat-mcp/oauth"
     tester = OAuthFlowTester(production_base_url, is_production=True)
     
     # Step 1: Test authorization endpoint (via ingress)
@@ -313,7 +313,7 @@ def test_oauth_flow_production():
     
     # Step 5: Test tool access with token (via MCP endpoint)
     print("\n[5/6] Testing tool access with OAuth token in production...")
-    mcp_base_url = f"{PRODUCTION_HOST}/api/mcp/librechatmcp"
+    mcp_base_url = f"{PRODUCTION_HOST}/api/mcp/librechat-mcp"
     tool_tester = OAuthFlowTester(mcp_base_url, is_production=True)
     tool_tester.mcp_url = f"{mcp_base_url}/mcp"
     tool_access_works = tool_tester.test_tool_access_with_token(access_token)
@@ -378,17 +378,17 @@ def test_oauth_configuration_prevents_error_redirect():
     with open(librechat_yaml_path, 'r') as f:
         content = f.read()
     
-    # Verify librechatmcp server configuration exists
-    assert "librechatmcp:" in content, "librechatmcp server configuration not found"
-    assert "oauth:" in content, "OAuth configuration not found for librechatmcp"
+    # Verify librechat-mcp server configuration exists
+    assert "librechat-mcp:" in content, "librechat-mcp server configuration not found"
+    assert "oauth:" in content, "OAuth configuration not found for librechat-mcp"
     
     # Extract OAuth configuration section using regex
     oauth_section_match = re.search(
-        r'librechatmcp:.*?oauth:\s*\n(.*?)(?=\n  [a-z]|\n\n|$)',
+        r'librechat-mcp:.*?oauth:\s*\n(.*?)(?=\n  [a-z]|\n\n|$)',
         content,
         re.DOTALL
     )
-    assert oauth_section_match, "OAuth section not found for librechatmcp"
+    assert oauth_section_match, "OAuth section not found for librechat-mcp"
     
     oauth_section = oauth_section_match.group(1)
     
@@ -409,15 +409,15 @@ def test_oauth_configuration_prevents_error_redirect():
     client_id = client_id_match.group(1).strip().strip('"').strip("'")
     
     # Verify client_id matches server name
-    assert client_id == "librechatmcp", (
-        f"client_id '{client_id}' does not match server name 'librechatmcp'. "
+    assert client_id == "librechat-mcp", (
+        f"client_id '{client_id}' does not match server name 'librechat-mcp'. "
         f"This mismatch can cause OAuth callback failures and redirects to error page."
     )
     
     # Verify redirect_uri format is correct
-    # Should be: http://localhost:3080/api/mcp/librechatmcp/oauth/callback (local)
-    # Or: https://domain.com/api/mcp/librechatmcp/oauth/callback (production)
-    expected_callback_path = "/api/mcp/librechatmcp/oauth/callback"
+    # Should be: http://localhost:3080/api/mcp/librechat-mcp/oauth/callback (local)
+    # Or: https://domain.com/api/mcp/librechat-mcp/oauth/callback (production)
+    expected_callback_path = "/api/mcp/librechat-mcp/oauth/callback"
     assert expected_callback_path in redirect_uri, (
         f"redirect_uri does not contain expected callback path.\n"
         f"Expected: ...{expected_callback_path}\n"
@@ -442,9 +442,9 @@ def test_oauth_configuration_prevents_error_redirect():
     )
     
     server_name_in_callback = callback_path_match.group(1)
-    assert server_name_in_callback == "librechatmcp", (
+    assert server_name_in_callback == "librechat-mcp", (
         f"Server name in callback URL '{server_name_in_callback}' does not match "
-        f"expected 'librechatmcp'.\n"
+        f"expected 'librechat-mcp'.\n"
         f"redirect_uri: {redirect_uri}\n"
         f"This mismatch will cause OAuth callback to fail and redirect to error page."
     )
@@ -494,13 +494,13 @@ def test_oauth_callback_does_not_redirect_to_error():
     with open(librechat_yaml_path, 'r') as f:
         content = f.read()
     
-    # Verify librechatmcp OAuth configuration exists
-    assert "librechatmcp:" in content, "librechatmcp server configuration not found"
-    assert "oauth:" in content, "OAuth configuration not found for librechatmcp"
+    # Verify librechat-mcp OAuth configuration exists
+    assert "librechat-mcp:" in content, "librechat-mcp server configuration not found"
+    assert "oauth:" in content, "OAuth configuration not found for librechat-mcp"
     
     # Extract OAuth configuration
-    oauth_section = re.search(r'librechatmcp:.*?oauth:(.*?)(?=\n  [a-z]|\n\n|$)', content, re.DOTALL)
-    assert oauth_section, "OAuth section not found for librechatmcp"
+    oauth_section = re.search(r'librechat-mcp:.*?oauth:(.*?)(?=\n  [a-z]|\n\n|$)', content, re.DOTALL)
+    assert oauth_section, "OAuth section not found for librechat-mcp"
     
     oauth_config = oauth_section.group(1)
     
@@ -514,9 +514,9 @@ def test_oauth_callback_does_not_redirect_to_error():
     redirect_uri = redirect_uri.split('#')[0].strip()
     
     # Verify redirect_uri format is correct
-    # Should be: http://localhost:3080/api/mcp/librechatmcp/oauth/callback (local)
-    # Or: https://domain.com/api/mcp/librechatmcp/oauth/callback (production)
-    expected_pattern = r'https?://[^/]+/api/mcp/librechatmcp/oauth/callback'
+    # Should be: http://localhost:3080/api/mcp/librechat-mcp/oauth/callback (local)
+    # Or: https://domain.com/api/mcp/librechat-mcp/oauth/callback (production)
+    expected_pattern = r'https?://[^/]+/api/mcp/librechat-mcp/oauth/callback'
     assert re.match(expected_pattern, redirect_uri), (
         f"redirect_uri format is incorrect: {redirect_uri}\n"
         f"Expected pattern: {expected_pattern}\n"
@@ -540,8 +540,8 @@ def test_oauth_callback_does_not_redirect_to_error():
     assert client_id_match, "client_id not found in OAuth configuration"
     
     client_id = client_id_match.group(1).strip().split('#')[0].strip()
-    assert client_id == "librechatmcp", (
-        f"client_id '{client_id}' does not match server name 'librechatmcp'. "
+    assert client_id == "librechat-mcp", (
+        f"client_id '{client_id}' does not match server name 'librechat-mcp'. "
         f"This mismatch can cause OAuth callback failures."
     )
     
@@ -555,7 +555,7 @@ def test_oauth_callback_does_not_redirect_to_error():
     
     # Verify the callback path matches the expected LibreChat MCP callback pattern
     # LibreChat expects: /api/mcp/{serverName}/oauth/callback
-    callback_path = "/api/mcp/librechatmcp/oauth/callback"
+    callback_path = "/api/mcp/librechat-mcp/oauth/callback"
     assert callback_path in redirect_uri, (
         f"redirect_uri does not contain expected callback path: {callback_path}\n"
         f"Actual redirect_uri: {redirect_uri}\n"
@@ -577,13 +577,13 @@ def test_oauth_callback_url_construction():
     causing redirects to error pages.
     """
     # Expected callback URL pattern for LibreChat MCP
-    expected_callback_pattern = r'/api/mcp/librechatmcp/oauth/callback'
+    expected_callback_pattern = r'/api/mcp/librechat-mcp/oauth/callback'
     
     # Test various redirect_uri formats that should work
     valid_redirect_uris = [
-        "http://localhost:3080/api/mcp/librechatmcp/oauth/callback",
-        "https://chat.example.com/api/mcp/librechatmcp/oauth/callback",
-        "https://138.199.226.49:8080/api/mcp/librechatmcp/oauth/callback",
+        "http://localhost:3080/api/mcp/librechat-mcp/oauth/callback",
+        "https://chat.example.com/api/mcp/librechat-mcp/oauth/callback",
+        "https://138.199.226.49:8080/api/mcp/librechat-mcp/oauth/callback",
     ]
     
     for redirect_uri in valid_redirect_uris:

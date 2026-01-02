@@ -1,5 +1,5 @@
 """
-Style enforcement tests for LibreChatMCP.
+Style enforcement tests for LibreChat-MCP.
 
 Runs Ruff formatting and linting checks using the shared configuration.
 """
@@ -34,4 +34,8 @@ def test_ruff_formatting() -> None:
 
 def test_ruff_lint() -> None:
     _run_ruff(["check", "."])
+
+
+
+
 

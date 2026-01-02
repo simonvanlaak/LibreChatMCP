@@ -26,7 +26,7 @@ ENVIRONMENT="${1:-docker}"
 case "$ENVIRONMENT" in
     docker|local)
         echo "🐳 Testing OAuth flow in Docker/Local environment..."
-        echo "   Base URL: ${LIBRECHATMCP_URL:-http://localhost:3002}"
+        echo "   Base URL: ${LIBRECHAT_MCP_URL:-http://localhost:3002}"
         echo ""
         pytest tests/test_oauth_integration.py::test_oauth_flow_docker -v
         ;;
@@ -89,7 +89,7 @@ case "$ENVIRONMENT" in
         echo "  TEST_LIBRECHAT_EMAIL      - LibreChat user email"
         echo "  TEST_LIBRECHAT_PASSWORD  - LibreChat user password"
         echo "  PRODUCTION_HOST          - Production host URL (for production tests)"
-        echo "  LIBRECHATMCP_URL         - LibreChatMCP base URL (default: http://localhost:3002)"
+        echo "  LIBRECHAT_MCP_URL         - LibreChat-MCP base URL (default: http://localhost:3002)"
         exit 1
         ;;
 esac
