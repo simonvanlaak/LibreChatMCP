@@ -14,6 +14,7 @@ from tools.agent import (
 from tools.model_context_protocol import (
     get_model_context_protocol_tools, get_model_context_protocol_info, get_model_context_protocol_status)
 from tools.models import get_models
+from tools.cybernetic_agents import chat_with_cybernetic_agent
 from shared.auth import routes as auth_routes
 from shared.middleware import SetUserIdFromHeaderMiddleware
 
@@ -31,6 +32,7 @@ libre_chat_mcp.tool(get_model_context_protocol_tools)
 libre_chat_mcp.tool(get_model_context_protocol_status)
 libre_chat_mcp.tool(get_model_context_protocol_info)
 libre_chat_mcp.tool(get_models)
+libre_chat_mcp.tool(chat_with_cybernetic_agent)
 
 # Create the app
 app = libre_chat_mcp.http_app()
